@@ -1,6 +1,7 @@
 package com.task.pokemonapp.presentation.pokemonList
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,41 +25,39 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.task.pokemonapp.domain.cache.core.PokemonRepository
 import com.task.pokemonapp.domain.network.model.PokemonListResult
 
 @Composable
 fun PokemonListItem(
     pokemon: PokemonListResult,
+    id: Int,
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
-    repository: PokemonRepository
+    imageLoader: suspend (Int) -> ImageBitmap,
+    onClick: () -> Unit
 ) {
-    val context = LocalContext.current
-
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(pokemon.name) {
-        val id = pokemon.url.trimEnd('/').substringAfterLast('/').toInt()
-        imageBitmap = repository.getImageBitmapForPokemon(id)
+
+    LaunchedEffect(id) {
+        imageBitmap = imageLoader(id)
     }
 
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .padding(8.dp),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clickable { onClick() },
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (imageBitmap != null) {
-            Image(bitmap = imageBitmap!!, contentDescription = pokemon.name,
-                modifier = Modifier.size(64.dp))
+            Image(bitmap = imageBitmap!!, contentDescription = pokemon.name, modifier = Modifier.size(64.dp))
         } else {
-            Box(modifier = Modifier.size(64.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(Modifier.size(24.dp))
             }
         }
-        Spacer(modifier = Modifier.width(8.dp))
-
+        Spacer(Modifier.width(8.dp))
         Text(pokemon.name.replaceFirstChar { it.uppercaseChar() }, modifier = Modifier.weight(1f))
 
         IconButton(onClick = onToggleFavorite) {

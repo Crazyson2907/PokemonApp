@@ -11,41 +11,46 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun PokemonListScreen(viewModel: PokemonListViewModel = viewModel()) {
+fun PokemonListScreen(
+    viewModel: PokemonListViewModel = viewModel(),
+    onOpenDetail: (String) -> Unit
+    ) {
     val pokemonList by viewModel.pokemonList.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    errorMessage?.let { error ->
-        Text("Error: $error")
-    }
+    errorMessage?.let { error -> Text("Error: $error") }
 
     LazyColumn {
         itemsIndexed(pokemonList) { index, pokemon ->
+            val id = remember(pokemon.url) { viewModel.getPokemonId(pokemon) }
+
             PokemonListItem(
                 pokemon = pokemon,
-                isFavorite = favorites.any { it.id == viewModel.getPokemonId(pokemon) },
+                id = id,
+                isFavorite = favorites.any { it.id == id },
                 onToggleFavorite = { viewModel.onFavoriteToggle(pokemon) },
-
-                repository = viewModel.repository
+                imageLoader = { neededId -> viewModel.loadImageBitmap(neededId) },
+                onClick = { onOpenDetail(pokemon.name) }
             )
 
             if (index == pokemonList.lastIndex && !isLoading) {
-                LaunchedEffect(Unit) {
-                    viewModel.loadNextPage()
-                }
+                LaunchedEffect(Unit) { viewModel.loadNextPage() }
             }
         }
+
         if (isLoading) {
             item {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                    CircularProgressIndicator(Modifier.padding(16.dp))
                 }
             }
         }

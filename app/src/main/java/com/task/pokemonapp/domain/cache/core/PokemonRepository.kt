@@ -5,6 +5,7 @@ import com.task.pokemonapp.domain.cache.entity.FavoritePokemon
 import com.task.pokemonapp.domain.network.model.PokemonDetail
 import com.task.pokemonapp.domain.network.model.PokemonListResult
 import kotlinx.coroutines.flow.Flow
+import java.io.File
 
 interface PokemonRepository {
 
@@ -21,4 +22,8 @@ interface PokemonRepository {
 
     fun extractPokemonIdFromUrl(url: String): Int
     fun extractPokemonId(p: PokemonListResult): Int = extractPokemonIdFromUrl(p.url)
+
+    suspend fun cacheImage(url: String, fileName: String): File
+
+    suspend fun cacheImages(urls: List<String>, namePrefix: String): List<File>
 }

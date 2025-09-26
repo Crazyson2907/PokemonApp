@@ -4,16 +4,23 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import com.task.pokemonapp.data.cache.FavoritePokemonDao
 import com.task.pokemonapp.domain.cache.core.PokemonRepository
+import com.task.pokemonapp.domain.cache.entity.FavoritePokemon
 import com.task.pokemonapp.domain.network.core.PokeApiService
 import com.task.pokemonapp.domain.network.model.PokemonDetail
 import com.task.pokemonapp.domain.network.model.PokemonListResult
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.io.FileOutputStream
+import java.io.IOException
 
 class PokemonRepositoryImpl(
     private val api: PokeApiService,
@@ -88,4 +95,35 @@ class PokemonRepositoryImpl(
             } finally { conn.disconnect() }
         }
     }
+
+    override suspend fun cacheImage(url: String, fileName: String): File {
+        val file = File(context.cacheDir, fileName)
+        if (file.exists()) return file
+
+        return withContext(Dispatchers.IO) {
+            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                instanceFollowRedirects = true
+                doInput = true
+                connect()
+            }
+            try {
+                if (conn.responseCode != HttpURLConnection.HTTP_OK) {
+                    throw IOException("HTTP ${conn.responseCode} for $url") as Throwable
+                }
+                conn.inputStream.use { input ->
+                    FileOutputStream(file).use { output -> input.copyTo(output) }
+                }
+                file
+            } finally {
+                conn.disconnect()
+            }
+        }
+    }
+
+    override suspend fun cacheImages(urls: List<String>, namePrefix: String): List<File> =
+        coroutineScope {
+            urls.mapIndexed { index, url ->
+                async { cacheImage(url, "${namePrefix}_$index.png") }
+            }.awaitAll()
+        }
 }

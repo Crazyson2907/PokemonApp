@@ -1,5 +1,6 @@
 package com.task.pokemonapp.presentation.pokemonList
 
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.task.pokemonapp.domain.cache.core.PokemonRepository
@@ -72,4 +73,10 @@ class PokemonListViewModel(
             }
         }
     }
+
+    fun getPokemonId(pokemon: PokemonListResult): Int =
+        repository.extractPokemonId(pokemon)
+
+    suspend fun loadImageBitmap(id: Int): ImageBitmap =
+        repository.getImageBitmapForPokemon(id)
 }
